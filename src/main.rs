@@ -5,7 +5,7 @@ use rasm::*;
 
 fn main() -> Result<(), Box<dyn Error>> {
 
-    let args: Vec<String> = env::args().collect(); 
+    let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
         println!("try: rasm [input file name] [output file name] ");
@@ -16,20 +16,37 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let contents = read_to_string(file_path)?;
 
-    let lines: Vec<Vec<&str>> = 
+    let lines: Vec<&str> = 
         contents
         .lines()
         .filter(|line| *line != "")
         .filter(|line| line.get(..3).unwrap() != "///")
-        .map(
-            |line| 
-            line.split(char::is_whitespace)
-            .collect()
-            )
         .collect();
 
+    let directives: Vec<&str> = 
+        lines
+        .clone()
+        .into_iter()
+        .filter(|line| line.get(..1).unwrap() == "!")
+        .collect();
 
-    println!("{lines:#?}");
+    let valid_lines: Vec<Vec<&str>> = 
+        lines
+        .into_iter()
+        .filter(|line| line.get(..1).unwrap() != "!")
+        .map(|line| line.split_whitespace().collect())
+        .collect();
+
+    println!("{valid_lines:#?}");
+
+
+    let instructions: Vec<Instruction> = 
+        valid_lines
+        .into_iter()
+        .map(Instruction::build)
+        .collect::<Result<Vec<Instruction>, _>>()?;
+
+    println!("{instructions:#?}");
 
 
     Ok(())

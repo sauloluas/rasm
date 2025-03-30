@@ -1,10 +1,9 @@
-
-x: 0h
-y: 1h
-z: 2h
+!x: 0h
+!y: 1h
+!z: 2h
 
 /// let byte x = 10
-init	Acc	10
+init	Acc		10
 
 /// let byte y = 3
 init	Bacc	3
@@ -14,6 +13,6 @@ copy	Carr	Acc
 adcp	Carr	Bacc
 
 /// storing values
-str	x	Acc
-str	y	Bacc
-str	z	Carr
+str		x		Acc
+str		y		Bacc
+str		z		Carr
