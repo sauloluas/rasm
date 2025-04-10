@@ -70,13 +70,16 @@ pub struct Immediate {
 
 impl Immediate {
     pub fn build(param: &str) -> Result<Immediate, String> {
-        Ok(Immediate {
-            literal: param
-                .ends_with('h')
-                .then_some(u8::from_str_radix(&param[..param.len() - 1], 16))
-                .or(param.to_string().parse::<u8>().into())
-                .unwrap()
-                .expect(&format!("Invalid immediate literal: {param}").to_string()),
-        })
+        let literal = if param.ends_with('h') {
+            u8::from_str_radix(&param[..param.len() - 1], 16).map_err(|e| {
+                format!("Invalid hexadecimal immediate literal: {param}, error: {e}")
+            })?
+        } else {
+            param
+                .parse::<u8>()
+                .map_err(|e| format!("Invalid decimal immediate literal: {param}, error: {e}"))?
+        };
+
+        Ok(Immediate { literal })
     }
 }
