@@ -23,25 +23,25 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter(|line| line.get(..3).unwrap() != "///")
         .collect();
 
-    let directives: Vec<&str> = 
-        lines
-        .clone()
-        .into_iter()
-        .filter(|line| line.get(..1).unwrap() == "!")
-        .collect();
+    // let directives: Vec<&str> = 
+    //     lines
+    //     .clone()
+    //     .into_iter()
+    //     .filter(|line| line.get(..1).unwrap() == "!")
+    //     .collect();
 
-    let valid_lines: Vec<Vec<&str>> = 
+    let meaningful_lines: Vec<Vec<&str>> = 
         lines
         .into_iter()
         .filter(|line| line.get(..1).unwrap() != "!")
         .map(|line| line.split_whitespace().collect())
         .collect();
 
-    println!("{valid_lines:#?}");
+    println!("{meaningful_lines:#?}");
 
 
     let instructions: Vec<Instruction> = 
-        valid_lines
+        meaningful_lines
         .into_iter()
         .map(Instruction::build)
         .collect::<Result<Vec<Instruction>, _>>()?;
