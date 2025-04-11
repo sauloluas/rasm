@@ -57,9 +57,13 @@ pub struct MemoryAddress {
 
 impl MemoryAddress {
     pub fn build(param: &str) -> Result<MemoryAddress, String> {
-        match param {
-            _ => return Err(format!("Invalid memory address: {param}")),
-        };
+        Immediate::build(param)
+            .and_then(|immediate| {
+                Ok(MemoryAddress {
+                    address: immediate.literal,
+                })
+            })
+            .or_else(|_| Err(format!("Invalid memory address: {param}")))
     }
 }
 
