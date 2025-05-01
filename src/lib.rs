@@ -58,12 +58,10 @@ pub struct MemoryAddress {
 impl MemoryAddress {
     pub fn build(param: &str) -> Result<MemoryAddress, String> {
         Immediate::build(param)
-            .and_then(|immediate| {
-                Ok(MemoryAddress {
-                    address: immediate.literal,
-                })
+            .map(|immediate| MemoryAddress {
+                address: immediate.literal,
             })
-            .or_else(|_| Err(format!("Invalid memory address: {param}")))
+            .map_err(|_| format!("Invalid memory address: {param}"))
     }
 }
 
@@ -75,7 +73,7 @@ pub struct Immediate {
 impl Immediate {
     pub fn build(param: &str) -> Result<Immediate, String> {
         let literal = if param.ends_with('h') {
-            u8::from_str_radix(&param[..param.len() - 1], 16).map_err(|e| {
+            u8::from_str_radix(param.strip_suffix('h').unwrap(), 16).map_err(|e| {
                 format!("Invalid hexadecimal immediate literal: {param}, error: {e}")
             })?
         } else {
