@@ -38,10 +38,17 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let instructions: Vec<Instruction> = meaningful_lines
         .into_iter()
-        .map(Instruction::build)
+        .map(Instruction::new)
         .collect::<Result<Vec<Instruction>, _>>()?;
 
     println!("{instructions:#?}");
+
+    let out: Vec<String> = instructions
+        .iter()
+        .map(|instruction| instruction.build())
+        .collect::<Result<Vec<String>, _>>()?;
+
+    println!("{}", out.join("\n"));
 
     Ok(())
 }

@@ -10,7 +10,7 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn build(line: Vec<&str>) -> Result<Instruction, String> {
+    pub fn new(line: Vec<&str>) -> Result<Instruction, String> {
         let operation = line[0];
         let param1 = line[1];
         let param2 = line[2];
@@ -24,6 +24,20 @@ impl Instruction {
         };
 
         Ok(inst)
+    }
+
+    pub fn build(&self) -> Result<String, String> {
+        let code = match self {
+            Self::Init(param1, param2) => [5, param1.reg_id, param2.literal],
+            Self::Copy(register1, register2) => [10, register1.reg_id, register2.reg_id],
+            Self::Adcp(register1, register2) => [11, register1.reg_id, register2.reg_id],
+            Self::Str(memaddr, register) => [7, memaddr.address, register.reg_id],
+            _ => {
+                return Err(format!("Operation {:?} not implemented yet!", self));
+            }
+        };
+
+        Ok(code.map(|byte| format!("{byte:02X}")).join(""))
     }
 }
 
