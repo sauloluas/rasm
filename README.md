@@ -36,10 +36,10 @@ Lines starting with `!` define variables/constants that work like C macros:
 
 Examples:
 ```assembly
-!ACC_REG A
-!MEMORY_ADDR 20h
-!INIT_VALUE 42
-!HEX_CONSTANT FFh
+!ACC_REG: A
+!MEMORY_ADDR: 20h
+!INIT_VALUE: 42
+!HEX_CONSTANT: FFh
 ```
 
 Variables are replaced with their values during compilation:

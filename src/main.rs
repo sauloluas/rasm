@@ -8,28 +8,32 @@ fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     if args.len() < 2 {
-        println!("try: rasm [input file name] [output file name] ");
+        println!("try: rasm [input file name]");
         return Err("not enough arguments".into());
     }
 
     let file_path = &args[1];
 
-    let contents = read_to_string(file_path)?;
-    
+    if !file_path.ends_with(".rasm") {
+        return Err(format!("Invalid file format: {}", file_path).into());
+    }
+
+    let contents =
+        read_to_string(file_path).map_err(|err| format!("Failed to read file: {}", err))?;
+
     println!("{contents}");
 
     // filter out empty lines and comments (lines starting with '///')
     let lines: Vec<&str> = contents
         .lines()
-        .filter(|line| !line.is_empty())
-        .filter(|line| line.get(..3).unwrap() != "///")
+        .filter(|line| !line.is_empty() && line.get(..3) != Some("///"))
         .collect();
 
     // Extract constant lines (C-like macros behavior)
     let constant_lines: Vec<&str> = lines
         .clone()
         .into_iter()
-        .filter(|line| line.get(..1).unwrap() == "!")
+        .filter(|line| line.starts_with("!"))
         .collect();
 
     // Parse constants from directives
@@ -41,19 +45,19 @@ fn main() -> Result<(), Box<dyn Error>> {
         let parts: Vec<&str> = line[1..].split(": ").collect(); // Skip the '!' character
 
         if parts.len() != 2 {
-            return Err(format!("Invalid constant format: {}", line).into());
+            return Err(format!("Invalid constant format: {line}").into());
         }
 
-        let var_name = parts[0].to_string();
-        let var_value = parts[1].to_string();
+        let name = parts[0].to_string();
+        let value = parts[1].to_string();
 
-        constants.insert(var_name, var_value);
+        constants.insert(name, value);
     }
 
     // Extract instruction lines (exclude directives and comments)
     let meaningful_lines: Vec<Vec<&str>> = lines
         .into_iter()
-        .filter(|line| line.get(..1).unwrap() != "!")
+        .filter(|line| line.get(..1) != Some("!"))
         .map(|line| line.split_whitespace().collect())
         .collect();
 
@@ -72,7 +76,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                         Ok(token.to_string())
                     }
                 })
-                .collect::<Result<Vec<String>, String>>()
+                .collect()
         })
         .collect();
 
