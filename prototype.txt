@@ -13,6 +13,6 @@ copy	Carr	Acc
 adcp	Carr	Bacc
 
 /// storing values
-str		0h		Acc
-str		1h		Bacc
-str		2h		Carr
+str		x		Acc
+str		y		Bacc
+str		z		Carr
