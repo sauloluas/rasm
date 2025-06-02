@@ -13,13 +13,25 @@ A simple assembler written in Rust that converts RASM language instructions into
 ## Usage
 
 ```bash
-cargo run [input_file]
+cargo run <input_file> [output_file]
 ```
 
-Example:
+Examples:
 ```bash
-cargo run prototype.txt
+cargo run prototype.rasm                    # Compile and display output to console
+cargo run prototype.rasm program            # Generate program.hex and program files
 ```
+
+### Output Files
+
+When an output file name is provided, RASM generates two files:
+
+1. **`[output_file].hex`** - Human-readable hexadecimal representation of the machine code
+2. **`[output_file]`** - Raw binary file containing the actual machine code bytes
+
+For example, running `cargo run program.rasm output` creates:
+- `output.hex` - Text file with hex codes (e.g., "05000A\n050103\n...")
+- `output` - Binary file with raw bytes that can be executed by the target machine
 
 ## Assembly Language Syntax
 
@@ -31,7 +43,7 @@ cargo run prototype.txt
 Lines starting with `!` define variables/constants that work like C macros:
 
 ```assembly
-!VARIABLE_NAME value
+!VARIABLE_NAME: value
 ```
 
 Examples:
@@ -146,10 +158,86 @@ This program would generate the following machine code:
 
 ## Machine Code Format
 
-Each instruction is encoded as 3 bytes in hexadecimal:
+Each instruction is encoded as 3 bytes:
 - Byte 1: Operation code
 - Byte 2: First parameter
 - Byte 3: Second parameter
+
+### Output Formats
+
+**Hexadecimal Format** (`.hex` file):
+```
+05000A
+050103
+0A0200
+```
+
+**Binary Format** (raw binary file):
+Raw bytes that can be directly loaded into memory or executed by the target machine. Each hex pair becomes a single byte (e.g., `05000A` becomes three bytes: `0x05`, `0x00`, `0x0A`).
+
+### Inspecting Binary Output
+
+You can inspect the generated binary files using various Linux tools:
+
+**Using hexdump to view binary content:**
+```bash
+hexdump -C output
+```
+
+Example output:
+```
+00000000  05 00 0a 05 01 03 0a 02  00 0b 02 01 07 00 00 07  |................|
+00000010  01 01 07 02 02                                    |.....|
+00000015
+```
+
+**Other useful inspection commands:**
+```bash
+xxd output              # Alternative hex viewer
+file output             # Identify file type
+wc -c output            # Count bytes in file
+```
+
+### Complete Workflow Example
+
+Here's a complete example showing compilation and inspection:
+
+**1. Create a simple program (`example.rasm`):**
+```assembly
+/// Simple arithmetic program
+!VALUE1: 10
+!VALUE2: 5
+!RESULT_ADDR: 20h
+
+init A VALUE1           // A = 10
+init B VALUE2           // B = 5
+adcp A B                // A = A + B (15)
+str RESULT_ADDR A       // Store result to memory
+```
+
+**2. Compile the program:**
+```bash
+cargo run example.rasm output
+```
+
+**3. Inspect the generated files:**
+```bash
+# View hex representation
+cat output.hex
+# Output: 05000A 05010B 0B0001 072000
+
+# Inspect binary file
+hexdump -C output
+# Output:
+# 00000000  05 00 0a 05 01 05 0b 00  01 07 20 00              |.......... |
+# 0000000c
+
+# Check file size
+wc -c output
+# Output: 12 output (4 instructions × 3 bytes each)
+```
+
+This shows how the assembler converts high-level rasm code into compact machine code that can be executed by the root processor.
 
 ### Operation Codes
 - `05`: init (Initialize register with immediate)
