@@ -1,5 +1,5 @@
-use rasm::*;
-use std::collections::HashMap;
+mod overroot;
+
 use std::env;
 use std::error::Error;
 use std::fs::read_to_string;
@@ -30,66 +30,17 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter(|line| !line.is_empty() && line.get(..3) != Some("///"))
         .collect();
 
-    // Extract constant lines (C-like macros behavior)
-    let constant_lines: Vec<&str> = lines
-        .clone()
-        .into_iter()
-        .filter(|line| line.starts_with("!"))
-        .collect();
+    let mut overroot = overroot::Overroot::new();
 
-    // Parse constants from directives
-    // Format: !CONSTANT_NAME value
-    // Example: !MY_REG A, !MEMORY_ADDR 20h, !CONSTANT 42
-    let mut constants: HashMap<String, String> = HashMap::new();
+    let replaced_lines = overroot.expand_lines(&lines)?;
 
-    for line in constant_lines {
-        let parts: Vec<&str> = line[1..].split(": ").collect(); // Skip the '!' character
-
-        if parts.len() != 2 {
-            return Err(format!("Invalid constant format: {line}").into());
-        }
-
-        let name = parts[0].to_string();
-        let value = parts[1].to_string();
-
-        constants.insert(name, value);
-    }
-
-    // Extract instruction lines (exclude directives and comments)
-    let meaningful_lines: Vec<Vec<&str>> = lines
-        .into_iter()
-        .filter(|line| line.get(..1) != Some("!"))
-        .map(|line| line.split_whitespace().collect())
-        .collect();
-
-    // Replace constant names with their defined values
-    // This implements the macro-like behavior where constants are substituted
-    let replaced_lines: Result<Vec<Vec<String>>, String> = meaningful_lines
-        .into_iter()
-        .map(|line| {
-            line.into_iter()
-                .map(|token| {
-                    // Check if token is defined as a constant and replace it
-                    // If not found, keep the original token
-                    if constants.contains_key(token) {
-                        Ok(constants[token].clone())
-                    } else {
-                        Ok(token.to_string())
-                    }
-                })
-                .collect()
-        })
-        .collect();
-
-    let replaced_lines = replaced_lines?;
-
-    let instructions: Vec<Instruction> = replaced_lines
+    let instructions: Vec<rasm::Instruction> = replaced_lines
         .into_iter()
         .map(|line| {
             let str_refs: Vec<&str> = line.iter().map(|s| s.as_str()).collect();
-            Instruction::build(str_refs)
+            rasm::Instruction::build(str_refs)
         })
-        .collect::<Result<Vec<Instruction>, _>>()?;
+        .collect::<Result<Vec<rasm::Instruction>, _>>()?;
 
     println!("{instructions:#?}");
 
@@ -112,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        std::fs::write(format!("{output_path}"), &bytes)?;
+        std::fs::write(format!("{output_path}.brx"), &bytes)?;
     }
 
     Ok(())
