@@ -1,0 +1,35 @@
+!x: 0h
+!y: 1h
+!z: 2h
+
+!R: 52h
+!A: 41h
+!S: 53h
+!M: 4Dh
+
+/// let byte x = 10
+init	Acc		10
+
+/// let byte y = 3
+init	Bacc	3
+
+/// ley byte z = x + y
+copy	Carr	Acc
+adcp	Carr	Bacc
+
+/// storing values
+str		x		Acc
+str		y		Bacc
+str		z		Carr
+
+init    Acc     R
+str     3h      Acc
+
+init    Acc     A
+str     4h      Acc
+
+init    Acc     S
+str     5h      Acc
+
+init    Acc     M
+str     6h      Acc
