@@ -1,8 +1,8 @@
-mod overroot;
-
 use std::env;
 use std::error::Error;
 use std::fs::read_to_string;
+
+use rasm::Overroot;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter(|line| !line.is_empty() && line.get(..3) != Some("///"))
         .collect();
 
-    let mut overroot = overroot::Overroot::new();
+    let mut overroot = Overroot::new();
 
     let replaced_lines = overroot.expand_lines(&lines)?;
 
