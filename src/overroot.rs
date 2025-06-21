@@ -1,16 +1,11 @@
 use std::collections::HashMap;
 
+#[derive(Default)]
 pub struct Overroot {
     constants: HashMap<String, String>,
 }
 
 impl Overroot {
-    pub fn new() -> Self {
-        Self {
-            constants: HashMap::new(),
-        }
-    }
-
     pub fn expand_lines(&mut self, lines: &[&str]) -> Result<Vec<Vec<String>>, String> {
         self.parse_constants(lines)?;
 

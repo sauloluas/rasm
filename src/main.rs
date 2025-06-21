@@ -30,7 +30,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .filter(|line| !line.is_empty() && line.get(..3) != Some("///"))
         .collect();
 
-    let mut overroot = Overroot::new();
+    let mut overroot = Overroot::default();
 
     let replaced_lines = overroot.expand_lines(&lines)?;
 
