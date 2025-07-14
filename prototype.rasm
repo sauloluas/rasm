@@ -1,11 +1,11 @@
-!x: 0h
-!y: 1h
-!z: 2h
+x := 0h
+y := 1h
+z := 2h
 
-!R: 52h
-!A: 41h
-!S: 53h
-!M: 4Dh
+R := 52h
+A := 41h
+S := 53h
+M := 4Dh
 
 /// let byte x = 10
 init	Acc		10

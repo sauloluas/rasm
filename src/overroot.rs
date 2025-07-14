@@ -9,16 +9,15 @@ impl Overroot {
     pub fn expand_lines(&mut self, lines: &[&str]) -> Result<Vec<Vec<String>>, String> {
         self.parse_constants(lines)?;
 
-        // Extract instruction lines (exclude directives and comments)
+        // Extract instruction lines
         let meaningful_lines: Vec<Vec<&str>> = lines
             .iter()
             .copied()
-            .filter(|line| line.get(..1) != Some("!"))
+            .filter(|line| !line.contains(":="))
             .map(|line| line.split_whitespace().collect())
             .collect();
 
         // Replace constant names with their defined values
-        // This implements the macro-like behavior where constants are substituted
         Ok(meaningful_lines
             .into_iter()
             .map(|line| {
@@ -37,24 +36,26 @@ impl Overroot {
             .collect())
     }
 
-    // Extract constant lines (C-like macros behavior)
+    // Extract constant lines
     pub fn parse_constants(&mut self, lines: &[&str]) -> Result<(), String> {
         lines
             .iter()
             .copied()
-            .filter(|line| line.starts_with("!"))
+            .filter(|line| line.contains(":="))
             .try_for_each(|line| {
                 // Parse constants from directives
                 // Format: !CONSTANT_NAME: value
                 // Example: !MY_REG: A, !MEMORY_ADDR: 20h, !CONSTANT: 42
-                let parts: Vec<&str> = line[1..].split(": ").collect(); // Skip the '!' character
+                let parts: Vec<&str> = line.split(":=").collect();
 
                 if parts.len() != 2 {
                     return Err(format!("Invalid constant format: {line}"));
                 }
 
-                let name = parts[0].to_string();
-                let value = parts[1].to_string();
+                let name = parts[0].trim().to_string();
+                let value = parts[1].trim().to_string();
+
+                // println!("name: {name:#?}\nvalue: {value:#?}");
 
                 self.constants.insert(name, value);
 
