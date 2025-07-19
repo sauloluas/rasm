@@ -14,7 +14,9 @@ pub enum Instruction {
 }
 
 impl Instruction {
-    pub fn build(line: Vec<&str>) -> Result<Instruction, String> {
+    pub fn build(line: &str) -> Result<Instruction, String> {
+        let line: Vec<&str> = line.split_whitespace().collect();
+
         let operation = line[0];
         let param1 = line[1];
         let param2 = line[2];
