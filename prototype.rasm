@@ -11,7 +11,7 @@ adcp    Carr    Bacc
 
 /// else case
 init    Datt    2
-/// lp              endif
+lp              endif
 
 then::
   init    Datt    1
