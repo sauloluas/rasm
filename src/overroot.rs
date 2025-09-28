@@ -4,7 +4,6 @@ use std::collections::HashMap;
 pub struct Overroot {
     constants: HashMap<String, String>,
     labels: HashMap<String, u8>,
-    // instructions: HashMap<String, crate::Instruction>,
     instructions: Vec<crate::Instruction>,
 }
 
@@ -88,12 +87,10 @@ impl Overroot {
                 position: None,
             }) = instruction
             {
-                let a = self.labels.get(&name.to_owned());
+                let name = name.to_string();
+                let position = self.labels.get(&name).copied();
 
-                *instruction = crate::Instruction::Leap(crate::Label {
-                    name: name.to_string(),
-                    position: a.copied(),
-                });
+                *instruction = crate::Instruction::Leap(crate::Label { name, position });
             };
         }
     }

@@ -33,9 +33,8 @@ impl Instruction {
         } else {
             match operation {
                 "lp" => {
-                    let label_name = param1.to_string() + "::";
-
-                    Self::Leap(Label::build(label_name.as_str(), None)?)
+                    let label_name = format!("{}::", param1);
+                    Self::Leap(Label::build(&label_name, None)?)
                 }
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
@@ -48,7 +47,7 @@ impl Instruction {
             Self::Copy(register1, register2) => [10, register1.reg_id, register2.reg_id],
             Self::Adcp(register1, register2) => [11, register1.reg_id, register2.reg_id],
             Self::Str(memaddr, register) => [7, memaddr.address, register.reg_id],
-            Self::Leap(label) => [0x2, 0, label.position.unwrap()],
+            Self::Leap(label) => [0x02, 0x00, label.position.unwrap()],
             _ => {
                 return Err(format!("Operation {:?} not implemented yet!", self));
             }
@@ -90,11 +89,17 @@ pub struct Label {
 impl Label {
     pub fn build(param: &str, position: Option<u8>) -> Result<Label, String> {
         match param.strip_suffix("::") {
-            Some(name) => Ok(Self {
-                name: name.to_string(),
-                position,
-            }),
-            None => Err(format!("Invalid syntax for label: '{param}'")),
+            Some(name) => {
+                if name.is_empty() {
+                    return Err("Label name cannot be empty".to_string());
+                }
+
+                Ok(Self {
+                    name: name.to_string(),
+                    position,
+                })
+            }
+            None => Err(format!("Label must end with '::' but got: '{param}'")),
         }
     }
 }
