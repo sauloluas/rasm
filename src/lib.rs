@@ -4,10 +4,8 @@ pub use overroot::Overroot;
 
 #[derive(Debug)]
 pub enum Instruction {
-    Add(Register, Register, Register), // Add copying
-    Adl(Register, MemoryAddress),       // Add loading
+    Add(Register, Register, Register),  // Add
     Asn(MemoryAddress, Immediate),      // Assign
-    // Copy(Register, Register),           // Copy
     Init(Register, Immediate),          // Initialize
     Load(Register, MemoryAddress),      // Load
     Str(MemoryAddress, Register),       // Store
@@ -35,7 +33,7 @@ impl Instruction {
         } else if let Some(param2) = param2 {
             match operation {
                 "init" => Self::Init(Register::build(param1)?, Immediate::build(param2)?),
-                // "copy" => Self::Copy(Register::build(param1)?, Register::build(param2)?),
+                "copy" => Self::Add(Register::build(param1)?, Register::build(param2)?, Register::build("r0")?),
                 "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
@@ -55,9 +53,6 @@ impl Instruction {
             Self::Init(reg, imm) => {
                 (0xAu16 << 12) | ((reg.reg_id as u16) << 8) | (imm.literal as u16)
             }
-            // Self::Copy(r1, r2) => {
-            //     (0xAu16 << 12) | ((r1.reg_id as u16) << 8) | ((r2.reg_id as u16) << 4)
-            // }
             Self::Add(r1, r2, r3) => {
                 (0x0u16 << 12) | ((r1.reg_id as u16) << 8) | ((r2.reg_id as u16) << 4) | (r3.reg_id as u16)
             }
