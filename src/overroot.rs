@@ -33,6 +33,28 @@ impl TryFrom<String> for Overroot {
             }
         }
 
+        let unresolved: Vec<(usize, String)> = overroot.instructions
+            .iter()
+            .enumerate()
+            .filter_map(|(i, inst)| {
+                if let crate::Instruction::Leap(crate::Label { name, position: None }) = inst {
+                    Some((i, name.clone()))
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for (i, name) in unresolved {
+            let position = overroot.labels.get(&name)
+                .copied()
+                .ok_or_else(|| format!("Label '{name}' not found"))?;
+
+            overroot.instructions[i] = crate::Instruction::Leap(
+                crate::Label { name, position: Some(position) }
+            );
+        }
+
         Ok(overroot)
     }
 }
@@ -84,20 +106,7 @@ impl Overroot {
 
         let label_name = line.strip_suffix("::").unwrap().to_string();
 
-        self.labels.insert(label_name.clone(), label_index);
-
-        for instruction in self.instructions.iter_mut() {
-            if let crate::Instruction::Leap(crate::Label {
-                name,
-                position: None,
-            }) = instruction
-            {
-                let name = name.to_string();
-                let position = self.labels.get(&name).copied();
-
-                *instruction = crate::Instruction::Leap(crate::Label { name, position });
-            };
-        }
+        self.labels.insert(label_name, label_index);
 
         Ok(())
     }

@@ -56,7 +56,6 @@ impl Instruction {
             Self::Add(r1, r2, r3) => 0x0000 | r1.bits() << 8 | r2.bits() << 4 | r3.bits(),
             Self::Str(addr, reg) => 0xC000 | addr.bits() << 4 | reg.bits(),
             Self::Leap(label) => 0x7000 | label.bits()?,
-            _ => return Err(format!("Operation {:?} not implemented yet!", self)),
         };
 
         Ok(format!("{word:04X}"))
