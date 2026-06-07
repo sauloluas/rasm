@@ -4,14 +4,14 @@ pub use overroot::Overroot;
 
 #[derive(Debug)]
 pub enum Instruction {
-    Adcp(Register, Register),      // Add copying
-    Adl(Register, MemoryAddress),  // Add loading
-    Asn(MemoryAddress, Immediate), // Assign
-    Copy(Register, Register),      // Copy
-    Init(Register, Immediate),     // Initialize
-    Load(Register, MemoryAddress), // Load
-    Str(MemoryAddress, Register),  // Store
-    Leap(Label),                   // Leap
+    Add(Register, Register, Register), // Add copying
+    Adl(Register, MemoryAddress),       // Add loading
+    Asn(MemoryAddress, Immediate),      // Assign
+    Copy(Register, Register),           // Copy
+    Init(Register, Immediate),          // Initialize
+    Load(Register, MemoryAddress),      // Load
+    Str(MemoryAddress, Register),       // Store
+    Leap(Label),                        // Leap
 }
 
 impl Instruction {
@@ -21,12 +21,21 @@ impl Instruction {
         let operation = line[0];
         let param1 = line[1];
         let param2 = line.get(2);
+        let param3 = line.get(3);
 
-        Ok(if let Some(param2) = param2 {
+        Ok(if let (Some(param2), Some(param3)) = (param2, param3) {
+            match operation {
+                "add" => Self::Add(
+                    Register::build(param1)?,
+                    Register::build(param2)?,
+                    Register::build(param3)?,
+                ),
+                _ => return Err(format!("Invalid operation: {operation}")),
+            }
+        } else if let Some(param2) = param2 {
             match operation {
                 "init" => Self::Init(Register::build(param1)?, Immediate::build(param2)?),
                 "copy" => Self::Copy(Register::build(param1)?, Register::build(param2)?),
-                "adcp" => Self::Adcp(Register::build(param1)?, Register::build(param2)?),
                 "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
@@ -42,18 +51,24 @@ impl Instruction {
     }
 
     pub fn encode(&self) -> Result<String, String> {
-        let code = match self {
-            Self::Init(param1, param2) => [0xA, param1.reg_id, param2.literal],
-            Self::Copy(register1, register2) => [10, register1.reg_id, register2.reg_id],
-            Self::Adcp(register1, register2) => [11, register1.reg_id, register2.reg_id],
-            Self::Str(memaddr, register) => [7, memaddr.address, register.reg_id],
-            Self::Leap(label) => [0x02, 0x00, label.position.unwrap()],
-            _ => {
-                return Err(format!("Operation {:?} not implemented yet!", self));
+        let word: u16 = match self {
+            Self::Init(reg, imm) => {
+                (0xAu16 << 12) | ((reg.reg_id as u16) << 8) | (imm.literal as u16)
             }
+            Self::Copy(r1, r2) => {
+                (0xAu16 << 12) | ((r1.reg_id as u16) << 8) | ((r2.reg_id as u16) << 4)
+            }
+            Self::Add(r1, r2, r3) => {
+                (0x0u16 << 12) | ((r1.reg_id as u16) << 8) | ((r2.reg_id as u16) << 4) | (r3.reg_id as u16)
+            }
+            Self::Str(addr, reg) => {
+                (0x7u16 << 12) | ((reg.reg_id as u16) << 8) | (addr.address as u16)
+            }
+            Self::Leap(label) => (0x2u16 << 12) | label.position.unwrap(),
+            _ => return Err(format!("Operation {:?} not implemented yet!", self)),
         };
 
-        Ok(code.map(|byte| format!("{byte:02X}")).join(""))
+        Ok(format!("{word:04X}"))
     }
 }
 
@@ -100,11 +115,11 @@ impl Register {
 #[derive(Debug)]
 pub struct Label {
     name: String,
-    position: Option<u8>,
+    position: Option<u16>,
 }
 
 impl Label {
-    pub fn build(param: &str, position: Option<u8>) -> Result<Label, String> {
+    pub fn build(param: &str, position: Option<u16>) -> Result<Label, String> {
         match param.strip_suffix("::") {
             Some(name) => {
                 if name.is_empty() {

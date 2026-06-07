@@ -3,7 +3,7 @@ use std::collections::HashMap;
 #[derive(Debug)]
 pub struct Overroot {
     constants: HashMap<String, String>,
-    labels: HashMap<String, u8>,
+    labels: HashMap<String, u16>,
     instructions: Vec<crate::Instruction>,
 }
 
@@ -76,7 +76,7 @@ impl Overroot {
     }
 
     fn insert_label(&mut self, line: &str) {
-        let label_index = self.instructions.len() as u8;
+        let label_index = self.instructions.len() as u16;
         let label_name = line.strip_suffix("::").unwrap().to_string();
 
         self.labels.insert(label_name.clone(), label_index);
