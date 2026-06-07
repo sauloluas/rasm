@@ -37,7 +37,7 @@ impl TryFrom<String> for Overroot {
             .iter()
             .enumerate()
             .filter_map(|(i, inst)| {
-                if let crate::Instruction::Leap(crate::Label { name, position: None }) = inst {
+                if let crate::Instruction::Leap(crate::Label { name, position: _ }) = inst {
                     Some((i, name.clone()))
                 } else {
                     None
