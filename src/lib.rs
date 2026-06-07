@@ -4,12 +4,12 @@ pub use overroot::Overroot;
 
 #[derive(Debug)]
 pub enum Instruction {
-    Add(Register, Register, Register),  // Add
-    Asn(MemoryAddress, Immediate),      // Assign
-    Init(Register, Immediate),          // Initialize
-    Load(Register, MemoryAddress),      // Load
-    Str(MemoryAddress, Register),       // Store
-    Leap(Label),                        // Leap
+    Add(Register, Register, Register), // Add
+    Asn(MemoryAddress, Immediate),     // Assign
+    Init(Register, Immediate),         // Initialize
+    Load(Register, MemoryAddress),     // Load
+    Str(MemoryAddress, Register),      // Store
+    Leap(Label),                       // Leap
 }
 
 impl Instruction {
@@ -33,7 +33,11 @@ impl Instruction {
         } else if let Some(param2) = param2 {
             match operation {
                 "init" => Self::Init(Register::build(param1)?, Immediate::build(param2)?),
-                "copy" => Self::Add(Register::build(param1)?, Register::build(param2)?, Register::build("r0")?),
+                "copy" => Self::Add(
+                    Register::build(param1)?,
+                    Register::build(param2)?,
+                    Register::zero(),
+                ),
                 "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
@@ -50,16 +54,10 @@ impl Instruction {
 
     pub fn encode(&self) -> Result<String, String> {
         let word: u16 = match self {
-            Self::Init(reg, imm) => {
-                (0xAu16 << 12) | ((reg.reg_id as u16) << 8) | (imm.literal as u16)
-            }
-            Self::Add(r1, r2, r3) => {
-                (0x0u16 << 12) | ((r1.reg_id as u16) << 8) | ((r2.reg_id as u16) << 4) | (r3.reg_id as u16)
-            }
-            Self::Str(addr, reg) => {
-                (0x7u16 << 12) | ((reg.reg_id as u16) << 8) | (addr.address as u16)
-            }
-            Self::Leap(label) => (0x7u16 << 12) | label.position.unwrap(),
+            Self::Init(reg, imm) => 0xA000 | reg.bits() << 8 | imm.bits(),
+            Self::Add(r1, r2, r3) => 0x0000 | r1.bits() << 8 | r2.bits() << 4 | r3.bits(),
+            Self::Str(addr, reg) => 0xC000 | addr.bits() << 4 | reg.bits(),
+            Self::Leap(label) => 0x7000 | label.bits()?,
             _ => return Err(format!("Operation {:?} not implemented yet!", self)),
         };
 
@@ -73,9 +71,11 @@ pub struct Register {
 }
 
 impl Register {
+    const ZERO: u8 = 0x0;
+
     pub fn build(param: &str) -> Result<Register, String> {
         let reg_id = match param {
-            "z" | "zero" | "r0" => 0x0,
+            "z" | "zero" | "r0" => Self::ZERO,
 
             // general purpose
             "Acc" | "A" | "ra" => 0x1,
@@ -105,6 +105,14 @@ impl Register {
 
         Ok(Register { reg_id })
     }
+
+    pub fn zero() -> Self {
+        Self { reg_id: Self::ZERO }
+    }
+
+    fn bits(&self) -> u16 {
+        self.reg_id as u16
+    }
 }
 
 #[derive(Debug)]
@@ -129,6 +137,11 @@ impl Label {
             None => Err(format!("Label must end with '::' but got: '{param}'")),
         }
     }
+
+    fn bits(&self) -> Result<u16, String> {
+        self.position
+            .ok_or_else(|| format!("Label '{}' has no resolved position", self.name))
+    }
 }
 
 #[derive(Debug)]
@@ -150,6 +163,10 @@ impl Immediate {
 
         Ok(Immediate { literal })
     }
+
+    fn bits(&self) -> u16 {
+        self.literal as u16
+    }
 }
 
 #[derive(Debug)]
@@ -164,5 +181,9 @@ impl MemoryAddress {
                 address: immediate.literal,
             })
             .map_err(|_| format!("Invalid memory address: {param}"))
+    }
+
+    fn bits(&self) -> u16 {
+        self.address as u16
     }
 }

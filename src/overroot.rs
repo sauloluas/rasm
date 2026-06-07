@@ -25,7 +25,7 @@ impl TryFrom<String> for Overroot {
             }
 
             if line.contains("::") {
-                overroot.insert_label(line);
+                overroot.insert_label(line)?;
             } else if line.contains(":=") {
                 overroot.insert_constant(line)?;
             } else {
@@ -75,8 +75,13 @@ impl Overroot {
         Ok(())
     }
 
-    fn insert_label(&mut self, line: &str) {
+    fn insert_label(&mut self, line: &str) -> Result<(), String> {
         let label_index = self.instructions.len() as u16;
+
+        if label_index > 0xFFF {
+            return Err(format!("Label position {label_index} exceeds 12-bit limit (max 4095)"));
+        }
+
         let label_name = line.strip_suffix("::").unwrap().to_string();
 
         self.labels.insert(label_name.clone(), label_index);
@@ -93,6 +98,8 @@ impl Overroot {
                 *instruction = crate::Instruction::Leap(crate::Label { name, position });
             };
         }
+
+        Ok(())
     }
 
     pub fn encode(self) -> Result<Vec<String>, String> {
