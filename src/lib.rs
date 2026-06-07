@@ -5,9 +5,7 @@ pub use overroot::Overroot;
 #[derive(Debug)]
 pub enum Instruction {
     Add(Register, Register, Register), // Add
-    Asn(MemoryAddress, Immediate),     // Assign
     Init(Register, Immediate),         // Initialize
-    Load(Register, MemoryAddress),     // Load
     Str(MemoryAddress, Register),      // Store
     Leap(Label),                       // Leap
 }
