@@ -43,7 +43,7 @@ impl Instruction {
 
     pub fn encode(&self) -> Result<String, String> {
         let code = match self {
-            Self::Init(param1, param2) => [5, param1.reg_id, param2.literal],
+            Self::Init(param1, param2) => [0xA, param1.reg_id, param2.literal],
             Self::Copy(register1, register2) => [10, register1.reg_id, register2.reg_id],
             Self::Adcp(register1, register2) => [11, register1.reg_id, register2.reg_id],
             Self::Str(memaddr, register) => [7, memaddr.address, register.reg_id],
@@ -65,14 +65,31 @@ pub struct Register {
 impl Register {
     pub fn build(param: &str) -> Result<Register, String> {
         let reg_id = match param {
-            "Acc" | "A" => 0,
-            "Bacc" | "B" => 1,
-            "Carr" | "C" => 2,
-            "Datt" | "D" => 3,
-            "E" => 4,
-            "F" => 5,
-            "G" => 6,
-            "H" => 7,
+            "z" | "zero" | "r0" => 0x0,
+
+            // general purpose
+            "Acc" | "A" | "ra" => 0x1,
+            "Bacc" | "B" | "rb" => 0x2,
+            "Carr" | "C" | "rc" => 0x3,
+            "Datt" | "D" | "rd" => 0x4,
+
+            // index registers
+            "i" => 0x5,
+            "j" => 0x6,
+            "k" => 0x7,
+            "l" => 0x8,
+
+            // pointer registers
+            "p" => 9,
+            "q" => 0xA,
+            "r" => 0xB,
+            "s" => 0xC,
+
+            // temporary registers
+            "t" => 0xD,
+            "u" => 0xE,
+            "v" => 0xF,
+
             _ => return Err(format!("Invalid register: {param}")),
         };
 
