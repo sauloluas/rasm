@@ -59,7 +59,7 @@ impl Instruction {
             Self::Str(addr, reg) => {
                 (0x7u16 << 12) | ((reg.reg_id as u16) << 8) | (addr.address as u16)
             }
-            Self::Leap(label) => (0x2u16 << 12) | label.position.unwrap(),
+            Self::Leap(label) => (0x7u16 << 12) | label.position.unwrap(),
             _ => return Err(format!("Operation {:?} not implemented yet!", self)),
         };
 
