@@ -11,23 +11,34 @@ pub enum Instruction {
     Init(Register, Immediate),     // Initialize
     Load(Register, MemoryAddress), // Load
     Str(MemoryAddress, Register),  // Store
+    Leap(Label),                   // Leap
 }
 
 impl Instruction {
-    pub fn build(line: Vec<&str>) -> Result<Instruction, String> {
+    pub fn build(line: &str) -> Result<Instruction, String> {
+        let line: Vec<&str> = line.split_whitespace().collect();
+
         let operation = line[0];
         let param1 = line[1];
-        let param2 = line[2];
+        let param2 = line.get(2);
 
-        let inst = match operation {
-            "init" => Self::Init(Register::build(param1)?, Immediate::build(param2)?),
-            "copy" => Self::Copy(Register::build(param1)?, Register::build(param2)?),
-            "adcp" => Self::Adcp(Register::build(param1)?, Register::build(param2)?),
-            "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
-            _ => return Err(format!("Invalid operation: {operation}")),
-        };
-
-        Ok(inst)
+        Ok(if let Some(param2) = param2 {
+            match operation {
+                "init" => Self::Init(Register::build(param1)?, Immediate::build(param2)?),
+                "copy" => Self::Copy(Register::build(param1)?, Register::build(param2)?),
+                "adcp" => Self::Adcp(Register::build(param1)?, Register::build(param2)?),
+                "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
+                _ => return Err(format!("Invalid operation: {operation}")),
+            }
+        } else {
+            match operation {
+                "lp" => {
+                    let label_name = format!("{}::", param1);
+                    Self::Leap(Label::build(&label_name, None)?)
+                }
+                _ => return Err(format!("Invalid operation: {operation}")),
+            }
+        })
     }
 
     pub fn encode(&self) -> Result<String, String> {
@@ -36,6 +47,7 @@ impl Instruction {
             Self::Copy(register1, register2) => [10, register1.reg_id, register2.reg_id],
             Self::Adcp(register1, register2) => [11, register1.reg_id, register2.reg_id],
             Self::Str(memaddr, register) => [7, memaddr.address, register.reg_id],
+            Self::Leap(label) => [0x02, 0x00, label.position.unwrap()],
             _ => {
                 return Err(format!("Operation {:?} not implemented yet!", self));
             }
@@ -69,17 +81,26 @@ impl Register {
 }
 
 #[derive(Debug)]
-pub struct MemoryAddress {
-    address: u8,
+pub struct Label {
+    name: String,
+    position: Option<u8>,
 }
 
-impl MemoryAddress {
-    pub fn build(param: &str) -> Result<MemoryAddress, String> {
-        Immediate::build(param)
-            .map(|immediate| MemoryAddress {
-                address: immediate.literal,
-            })
-            .map_err(|_| format!("Invalid memory address: {param}"))
+impl Label {
+    pub fn build(param: &str, position: Option<u8>) -> Result<Label, String> {
+        match param.strip_suffix("::") {
+            Some(name) => {
+                if name.is_empty() {
+                    return Err("Label name cannot be empty".to_string());
+                }
+
+                Ok(Self {
+                    name: name.to_string(),
+                    position,
+                })
+            }
+            None => Err(format!("Label must end with '::' but got: '{param}'")),
+        }
     }
 }
 
@@ -101,5 +122,20 @@ impl Immediate {
         };
 
         Ok(Immediate { literal })
+    }
+}
+
+#[derive(Debug)]
+pub struct MemoryAddress {
+    address: u8,
+}
+
+impl MemoryAddress {
+    pub fn build(param: &str) -> Result<MemoryAddress, String> {
+        Immediate::build(param)
+            .map(|immediate| MemoryAddress {
+                address: immediate.literal,
+            })
+            .map_err(|_| format!("Invalid memory address: {param}"))
     }
 }

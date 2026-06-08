@@ -1,6 +1,6 @@
-use std::env;
 use std::error::Error;
 use std::fs::read_to_string;
+use std::{env, fs};
 
 use rasm::Overroot;
 
@@ -22,37 +22,18 @@ fn main() -> Result<(), Box<dyn Error>> {
     let contents =
         read_to_string(file_path).map_err(|err| format!("Failed to read file: {}", err))?;
 
-    println!("{contents}");
+    println!("{contents}\n");
 
-    // filter out empty lines and comments (lines starting with '///')
-    let lines: Vec<&str> = contents
-        .lines()
-        .filter(|line| !line.is_empty() && line.get(..3) != Some("///"))
-        .collect();
+    let overroot = Overroot::try_from(contents)?;
 
-    let mut overroot = Overroot::default();
+    println!("{overroot:#?}\n");
 
-    let replaced_lines = overroot.expand_lines(&lines)?;
-
-    let instructions: Vec<rasm::Instruction> = replaced_lines
-        .into_iter()
-        .map(|line| {
-            let str_refs: Vec<&str> = line.iter().map(|s| s.as_str()).collect();
-            rasm::Instruction::build(str_refs)
-        })
-        .collect::<Result<Vec<rasm::Instruction>, _>>()?;
-
-    println!("{instructions:#?}");
-
-    let out: Vec<String> = instructions
-        .into_iter()
-        .map(|instruction| instruction.encode())
-        .collect::<Result<Vec<String>, _>>()?;
+    let out = overroot.encode()?;
 
     println!("{}", out.join("\n"));
 
     if let Some(output_path) = output_path {
-        std::fs::write(format!("{output_path}.hex"), out.join("\n"))?;
+        fs::write(format!("{output_path}.hex"), out.join("\n"))?;
 
         let mut bytes: Vec<u8> = Vec::new();
 
@@ -63,7 +44,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
 
-        std::fs::write(format!("{output_path}.brx"), &bytes)?;
+        fs::write(format!("{output_path}.brx"), &bytes)?;
     }
 
     Ok(())
