@@ -4,10 +4,10 @@ pub use overroot::Overroot;
 
 #[derive(Debug)]
 pub enum Instruction {
-    Add(Register, Register, Register), // Add
-    Init(Register, Immediate),         // Initialize
-    Str(MemoryAddress, Register),      // Store
-    Leap(Label),                       // Leap
+    Add(Register, Register, Register),  // Add
+    Init(Register, Immediate),          // Initialize
+    Send(Register, Register, Register), // Store
+    Leap(Label),                        // Leap
 }
 
 impl Instruction {
@@ -26,6 +26,11 @@ impl Instruction {
                     Register::build(param2)?,
                     Register::build(param3)?,
                 ),
+                "send" => Self::Send(
+                    Register::build(param1)?,
+                    Register::build(param2)?,
+                    Register::build(param3)?,
+                ),
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
         } else if let Some(param2) = param2 {
@@ -36,7 +41,11 @@ impl Instruction {
                     Register::build(param2)?,
                     Register::zero(),
                 ),
-                "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
+                "send" => Self::Send(
+                    Register::build(param1)?,
+                    Register::build(param2)?,
+                    Register::zero(),
+                ),
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
         } else {
@@ -54,7 +63,9 @@ impl Instruction {
         let word: u16 = match self {
             Self::Init(reg, imm) => 0xA000 | reg.bits() << 8 | imm.bits(),
             Self::Add(r1, r2, r3) => 0x0000 | r1.bits() << 8 | r2.bits() << 4 | r3.bits(),
-            Self::Str(addr, reg) => 0xC000 | addr.bits() << 4 | reg.bits(),
+            Self::Send(value_reg, address_reg, offset_reg) => {
+                0xC000 | value_reg.bits() << 8 | address_reg.bits() << 4 | offset_reg.bits()
+            }
             Self::Leap(label) => 0x7000 | label.bits()?,
         };
 
@@ -71,14 +82,16 @@ impl Register {
     const ZERO: u8 = 0x0;
 
     pub fn build(param: &str) -> Result<Register, String> {
-        let reg_id = match param {
-            "z" | "zero" | "r0" => Self::ZERO,
+        let name = param.strip_prefix('@').unwrap();
+
+        let reg_id = match name {
+            "z" => Self::ZERO,
 
             // general purpose
-            "Acc" | "A" | "ra" => 0x1,
-            "Bacc" | "B" | "rb" => 0x2,
-            "Carr" | "C" | "rc" => 0x3,
-            "Datt" | "D" | "rd" => 0x4,
+            "a" => 0x1,
+            "b" => 0x2,
+            "c" => 0x3,
+            "d" => 0x4,
 
             // index registers
             "i" => 0x5,
@@ -163,24 +176,5 @@ impl Immediate {
 
     fn bits(&self) -> u16 {
         self.literal as u16
-    }
-}
-
-#[derive(Debug)]
-pub struct MemoryAddress {
-    address: u8,
-}
-
-impl MemoryAddress {
-    pub fn build(param: &str) -> Result<MemoryAddress, String> {
-        Immediate::build(param)
-            .map(|immediate| MemoryAddress {
-                address: immediate.literal,
-            })
-            .map_err(|_| format!("Invalid memory address: {param}"))
-    }
-
-    fn bits(&self) -> u16 {
-        self.address as u16
     }
 }

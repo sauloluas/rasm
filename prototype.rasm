@@ -5,9 +5,9 @@ add3 := 2
 init @a 3
 copy @c @a
 add  @c @c @b
-wz   @c then
+// wz   @c then
 
-// else case
+/// else case
 init @d 2
 lp   endif
 
@@ -15,9 +15,9 @@ then:
     init @d 1
 
 endif:
-    init @e, add1
-    send @a, @e
-    init @e, add2
-    send @b, @e
-    init @e, add3
-    send @d, @e
+    init @p add1
+    send @a @p
+    init @p add2
+    send @b @p
+    init @p add3
+    send @d @p

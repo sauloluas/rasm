@@ -18,16 +18,16 @@ impl TryFrom<String> for Overroot {
         };
 
         for line in contents.lines() {
-            let line_is_comment = line.get(..3) == Some("///");
+            let line_is_comment = line.get(..2) == Some("//");
 
             if line.is_empty() || line_is_comment {
                 continue;
             }
 
-            if line.contains("::") {
-                overroot.insert_label(line)?;
-            } else if line.contains(":=") {
+            if line.contains(":=") {
                 overroot.insert_constant(line)?;
+            } else if line.contains(":") {
+                overroot.insert_label(line)?;
             } else {
                 overroot.push_instruction(line)?;
             }
@@ -104,7 +104,7 @@ impl Overroot {
             return Err(format!("Label position {label_index} exceeds 12-bit limit (max 4095)"));
         }
 
-        let label_name = line.strip_suffix("::").unwrap().to_string();
+        let label_name = line.strip_suffix(":").unwrap().to_string();
 
         self.labels.insert(label_name, label_index);
 
