@@ -4,14 +4,10 @@ pub use overroot::Overroot;
 
 #[derive(Debug)]
 pub enum Instruction {
-    Adcp(Register, Register),      // Add copying
-    Adl(Register, MemoryAddress),  // Add loading
-    Asn(MemoryAddress, Immediate), // Assign
-    Copy(Register, Register),      // Copy
-    Init(Register, Immediate),     // Initialize
-    Load(Register, MemoryAddress), // Load
-    Str(MemoryAddress, Register),  // Store
-    Leap(Label),                   // Leap
+    Add(Register, Register, Register), // Add
+    Init(Register, Immediate),         // Initialize
+    Str(MemoryAddress, Register),      // Store
+    Leap(Label),                       // Leap
 }
 
 impl Instruction {
@@ -21,12 +17,25 @@ impl Instruction {
         let operation = line[0];
         let param1 = line[1];
         let param2 = line.get(2);
+        let param3 = line.get(3);
 
-        Ok(if let Some(param2) = param2 {
+        Ok(if let (Some(param2), Some(param3)) = (param2, param3) {
+            match operation {
+                "add" => Self::Add(
+                    Register::build(param1)?,
+                    Register::build(param2)?,
+                    Register::build(param3)?,
+                ),
+                _ => return Err(format!("Invalid operation: {operation}")),
+            }
+        } else if let Some(param2) = param2 {
             match operation {
                 "init" => Self::Init(Register::build(param1)?, Immediate::build(param2)?),
-                "copy" => Self::Copy(Register::build(param1)?, Register::build(param2)?),
-                "adcp" => Self::Adcp(Register::build(param1)?, Register::build(param2)?),
+                "copy" => Self::Add(
+                    Register::build(param1)?,
+                    Register::build(param2)?,
+                    Register::zero(),
+                ),
                 "str" => Self::Str(MemoryAddress::build(param1)?, Register::build(param2)?),
                 _ => return Err(format!("Invalid operation: {operation}")),
             }
@@ -42,18 +51,15 @@ impl Instruction {
     }
 
     pub fn encode(&self) -> Result<String, String> {
-        let code = match self {
-            Self::Init(param1, param2) => [5, param1.reg_id, param2.literal],
-            Self::Copy(register1, register2) => [10, register1.reg_id, register2.reg_id],
-            Self::Adcp(register1, register2) => [11, register1.reg_id, register2.reg_id],
-            Self::Str(memaddr, register) => [7, memaddr.address, register.reg_id],
-            Self::Leap(label) => [0x02, 0x00, label.position.unwrap()],
-            _ => {
-                return Err(format!("Operation {:?} not implemented yet!", self));
-            }
+        let word: u16 = match self {
+            Self::Init(reg, imm) => 0xA000 | reg.bits() << 8 | imm.bits(),
+            Self::Add(r1, r2, r3) => 0x0000 | r1.bits() << 8 | r2.bits() << 4 | r3.bits(),
+            Self::Str(addr, reg) => 0xC000 | addr.bits() << 4 | reg.bits(),
+            Self::Leap(label) => 0x7000 | label.bits()?,
+            _ => return Err(format!("Operation {:?} not implemented yet!", self)),
         };
 
-        Ok(code.map(|byte| format!("{byte:02X}")).join(""))
+        Ok(format!("{word:04X}"))
     }
 }
 
@@ -63,31 +69,58 @@ pub struct Register {
 }
 
 impl Register {
+    const ZERO: u8 = 0x0;
+
     pub fn build(param: &str) -> Result<Register, String> {
         let reg_id = match param {
-            "Acc" | "A" => 0,
-            "Bacc" | "B" => 1,
-            "Carr" | "C" => 2,
-            "Datt" | "D" => 3,
-            "E" => 4,
-            "F" => 5,
-            "G" => 6,
-            "H" => 7,
+            "z" | "zero" | "r0" => Self::ZERO,
+
+            // general purpose
+            "Acc" | "A" | "ra" => 0x1,
+            "Bacc" | "B" | "rb" => 0x2,
+            "Carr" | "C" | "rc" => 0x3,
+            "Datt" | "D" | "rd" => 0x4,
+
+            // index registers
+            "i" => 0x5,
+            "j" => 0x6,
+            "k" => 0x7,
+            "l" => 0x8,
+
+            // pointer registers
+            "p" => 9,
+            "q" => 0xA,
+            "r" => 0xB,
+            "s" => 0xC,
+
+            // temporary registers
+            "t" => 0xD,
+            "u" => 0xE,
+            "v" => 0xF,
+
             _ => return Err(format!("Invalid register: {param}")),
         };
 
         Ok(Register { reg_id })
+    }
+
+    pub fn zero() -> Self {
+        Self { reg_id: Self::ZERO }
+    }
+
+    fn bits(&self) -> u16 {
+        self.reg_id as u16
     }
 }
 
 #[derive(Debug)]
 pub struct Label {
     name: String,
-    position: Option<u8>,
+    position: Option<u16>,
 }
 
 impl Label {
-    pub fn build(param: &str, position: Option<u8>) -> Result<Label, String> {
+    pub fn build(param: &str, position: Option<u16>) -> Result<Label, String> {
         match param.strip_suffix("::") {
             Some(name) => {
                 if name.is_empty() {
@@ -101,6 +134,11 @@ impl Label {
             }
             None => Err(format!("Label must end with '::' but got: '{param}'")),
         }
+    }
+
+    fn bits(&self) -> Result<u16, String> {
+        self.position
+            .ok_or_else(|| format!("Label '{}' has no resolved position", self.name))
     }
 }
 
@@ -123,6 +161,10 @@ impl Immediate {
 
         Ok(Immediate { literal })
     }
+
+    fn bits(&self) -> u16 {
+        self.literal as u16
+    }
 }
 
 #[derive(Debug)]
@@ -137,5 +179,9 @@ impl MemoryAddress {
                 address: immediate.literal,
             })
             .map_err(|_| format!("Invalid memory address: {param}"))
+    }
+
+    fn bits(&self) -> u16 {
+        self.address as u16
     }
 }

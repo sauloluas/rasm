@@ -5,7 +5,7 @@ z := 2h
 init    Acc     3
 init    Bacc    254
 copy    Carr    Acc
-adcp    Carr    Bacc
+add     Carr    Carr    Bacc
 
 /// wz      Carr    then
 
