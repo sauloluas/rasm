@@ -1,22 +1,23 @@
-a := 0h
-b := 1h
-z := 2h
+add1 := 0
+add2 := 1
+add3 := 2
 
-init    Acc     3
-init    Bacc    254
-copy    Carr    Acc
-add     Carr    Carr    Bacc
+init @a 3
+copy @c @a
+add  @c @c @b
+wz   @c then
 
-/// wz      Carr    then
+// else case
+init @d 2
+lp   endif
 
-/// else case
-init    Datt    2
-lp              endif
+then:
+    init @d 1
 
-then::
-  init    Datt    1
-
-endif::
-  str     a       Acc
-  str     b       Bacc
-  str     z       Datt
+endif:
+    init @e, add1
+    send @a, @e
+    init @e, add2
+    send @b, @e
+    init @e, add3
+    send @d, @e
